@@ -7,23 +7,22 @@
 
 int main()
 {
-    kscsv_t csv;
-
-    char filename[256] = ".././log/TEST_1.csv";
+    kscsv_t csv = {0};
 
     printf("open csv ... ");
-    if (!kscsv_open(&csv, filename))
+    if (!kscsv_open(&csv, ".././log/TEST_1.csv"))
     {
         printf("failed\n");
         return -1;
     }
     printf("ok\n\n");
 
+    printf("csv.filename ... %s\n", csv.filename);
     printf("csv.lens ... %d\n", csv.lens);
-    printf("csv.itemcnt ... %d\n\n", csv.itemcnt);
-    for (int i = 0; i < csv.itemcnt; i++)
+    printf("csv.tagcnt ... %d\n\n", csv.tagcnt);
+    for (int i = 0; i < csv.tagcnt; i++)
     {
-        printf("[%02d] %s\n", csv.itemidx[i], KSCSV_ITEM_STRING[csv.itemidx[i]]);
+        printf("[%02d] %s\n", csv.tagidx[i], KSCSV_TAG_STRING[csv.tagidx[i]]);
     }
     kscsv_close(&csv);
 
