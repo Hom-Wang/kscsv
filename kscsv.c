@@ -23,7 +23,7 @@
 /* Typedef ---------------------------------------------------------------------------------*/
 /* Variables -------------------------------------------------------------------------------*/
 
-const char KSCSV_TAG_STRING[KSCSV_IDX_END][8] =
+const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH] =
 {
     "sn", "ts", "dt",
     "gx", "gy", "gz", "grx", "gry", "grz", "gbx", "gby", "gbz",
@@ -45,7 +45,7 @@ const char KSCSV_TAG_STRING[KSCSV_IDX_END][8] =
  */
 int kscsv_get_tag_index(char *tag)
 {
-    for (int i = 0; i < KSCSV_IDX_END; i++)
+    for (int i = 0; i < KSCSV_IDX_TOTAL; i++)
     {
         if (strcmp(KSCSV_TAG_STRING[i], tag) == 0)
         {
@@ -56,98 +56,73 @@ int kscsv_get_tag_index(char *tag)
 }
 
 /**
- *  @brief  kscsv_get_tag_count
- */
-int kscsv_get_tag_count(char *line)
-{
-    int tag = -1;
-    while (*line != 0)
-    {
-        if (*line == ',')
-        {
-            tag++;
-        }
-        line++;
-    }
-    return (tag < 0) ? -1 : tag + 2;
-}
-
-/**
- *  @brief  kscsv_get_tag_index_array
- */
-int kscsv_get_tag_index_array(char *line, int *idxarray)
-{
-    char *tag = (char *)strtok(line, ",");
-    int idx = 0;
-    while (tag != NULL) 
-    {
-        idxarray[idx++] = kscsv_get_tag_index(tag);
-        tag = (char *)strtok(NULL, ",");
-    }
-    return idx;
-}
-
-/**
- *  @brief  kscsv_check_tag_index_array
- */
-int kscsv_check_tag_index_array(int *idxarray, int lens)
-{
-    int unknown = 0;
-    for (int i = 0; i < lens; i++)
-    {
-        if (idxarray[i] == KSCSV_IDX_UNKNOWN)
-        {
-            unknown++;
-        }
-    }
-    return (lens != unknown) ? 1 : 0;
-}
-
-/**
  *  @brief  kscsv_get_line_count
  */
 int kscsv_get_line_count(FILE *file)
 {
-    char line[8192] = {0};
+    char line[MAX_FILE_LINE_STRING_LENGTH] = {0};
     int lens = 0;
-
-    if (file == NULL)
-    {
-        return -1;
-    }
     rewind(file);
     while (!feof(file))
     {
         fscanf(file, "%s\n", line);
+        // memset(line, 0, MAX_FILE_LINE_STRING_LENGTH);
+        // fgets(line, sizeof(line), file);
+        if (strlen(line) < 2)
+        {
+            break;
+        }
         lens++;
 #if 0
         printf("[%d] %s\n", lens, line);
 #endif
     }
+    rewind(file);
     return lens;
 }
 
 /**
- *  @brief  kscsv_get_line_string
+ *  @brief  kscsv_get_tag
  */
-int kscsv_get_line_string(FILE *file, char *linebuf, int line)
+int kscsv_get_tag(FILE *file, int **tags)
 {
-    int lens = 0;
-
-    if (file == NULL)
-    {
-        return -1;
-    }
+    // get first line
+    char line[MAX_FILE_LINE_STRING_LENGTH] = {0};
     rewind(file);
-    while (!feof(file))
+    fscanf(file, "%s\n", line);
+    // fgets(line, sizeof(line), file);
+    // line[strlen(line)-1] = '\0';
+
+    // get number of tags
+    int tagcnt = -1;
+    char *pline = line;
+    while (*pline != 0)
     {
-        fscanf(file, "%s\n", linebuf);
-        if (++lens == line)
+        if (*pline == ',')
         {
-            return lens;
+            tagcnt++;
         }
+        pline++;
     }
-    return lens;
+    tagcnt = (tagcnt < 0) ? 0 : tagcnt + 2;
+
+    // update tag index
+    if (*tags == NULL)
+    {
+        *tags = (int *)calloc(tagcnt, sizeof(int));
+    }
+    char *tag = (char *)strtok(line, ",");
+    int *ptags = *tags;
+    while (tag != NULL) 
+    {
+        // TODO:
+        // if index == unknow then ...
+        // KSCSV_IDX_TOTAL +1, +2 ...
+        *(ptags++) = kscsv_get_tag_index(tag);
+        tag = (char *)strtok(NULL, ",");
+    }
+
+    return tagcnt;
 }
 
 /**
@@ -155,43 +130,25 @@ int kscsv_get_line_string(FILE *file, char *linebuf, int line)
  */
 int kscsv_open(kscsv_t *csv, char *filename)
 {
-    FILE *fp;
-
     if (csv->path == NULL)
     {
-        csv->path = (char*)malloc(sizeof(char)*MAX_PATH_STRING_LENGTH);
+        csv->path = (char *)calloc(MAX_PATH_STRING_LENGTH, sizeof(char));
     }
     if (csv->filename == NULL)
     {
-        csv->filename = (char*)malloc(sizeof(char)*MAX_FILENAME_STRING_LENGTH);
+        csv->filename = (char *)calloc(MAX_FILENAME_STRING_LENGTH, sizeof(char));
         strcpy(csv->filename, filename);
     }
 
-    fp = fopen(filename, "rb");
-    csv->lens = kscsv_get_line_count(fp);
-    if (csv->lens < 0)
+    csv->fp = fopen(filename, "rb");
+    if (csv->fp == NULL)
     {
-        return -1;
+        return KS_ERROR;
     }
+    csv->lens = kscsv_get_line_count(csv->fp) - 1;
+    csv->tagcnt = kscsv_get_tag(csv->fp, &csv->tags);
 
-    if (csv->line == NULL)
-    {
-        csv->line = (char*)malloc(sizeof(char)*MAX_FILE_LINE_STRING_LENGTH);
-    }
-    kscsv_get_line_string(fp, csv->line, 1);    // get first line
-    fclose(fp);
-
-    csv->tagcnt = kscsv_get_tag_count(csv->line);
-    if (csv->tagidx == NULL)
-    {
-        csv->tagidx = (int*)malloc(sizeof(int)*csv->tagcnt);
-    }
-    kscsv_get_tag_index_array(csv->line, csv->tagidx);
-    if (kscsv_check_tag_index_array(csv->tagidx, csv->tagcnt) != 0)
-    {
-        csv->lens--;
-    }
-    return 1;
+    return KS_OK;
 }
 
 /**
@@ -199,8 +156,126 @@ int kscsv_open(kscsv_t *csv, char *filename)
  */
 int kscsv_close(kscsv_t *csv)
 {
-    free(csv->line);
-    csv->line = NULL;
+    fclose(csv->fp);
+    free(csv->path);
+    free(csv->filename);
+    free(csv->tags);
+    csv->path = NULL;
+    csv->filename = NULL;
+    csv->tags = NULL;
+    kscsv_release(csv);
+}
+
+int kscsv_malloc(kscsv_t *csv, int size)
+{
+    // memory allocation
+    csv->raw.size = size;
+    for (int i = 0; i < csv->tagcnt; i++)
+    {
+        int idx = csv->tags[i];
+        if (idx < KSCSV_IDX_UNKNOWN)
+        {
+            csv->mem[idx] = (unsigned int)calloc(size, sizeof(double));
+        }
+    }
+    // TODO:
+    // if have unknow tag ...
+}
+
+int kscsv_read_data(kscsv_t *csv, int index)
+{
+    if (index >= csv->raw.size)
+    {
+        return -1;
+    }
+    // read data
+    for (int i = 0; i < csv->tagcnt-1; i++)
+    {
+        // TODO:
+        // if have unknow tag ...
+        fscanf(csv->fp, "%lf,", &((double*)csv->mem[csv->tags[i]])[index]);
+        // switch (csv->tags[i])
+        // {
+        //     case KSCSV_TAG_INTEGER_CASE:
+        //     {
+        //         printf("%.0f,", *(double*)csv->mem[csv->tags[i]]);
+        //         break;
+        //     }
+        //     default:
+        //     {
+        //         printf("%lf,", *(double*)csv->mem[csv->tags[i]]);
+        //         break;
+        //     }
+        // }
+    }
+    fscanf(csv->fp, "%lf\n", &((double*)csv->mem[csv->tags[csv->tagcnt-1]])[index]);
+    return 1;
+}
+
+/**
+ *  @brief  kscsv_read
+ */
+int kscsv_read(kscsv_t *csv, int lens)
+{
+    kscsv_malloc(csv, csv->lens);
+
+    if (feof(csv->fp))
+    {
+        return -1;
+    }
+
+    // read csv
+    int idx = 0;
+    if (lens < 0)
+    {
+        while (!feof(csv->fp))
+        {
+            kscsv_read_data(csv, idx++);
+        }
+    }
+    else
+    {
+        while (!feof(csv->fp))
+        {
+            kscsv_read_data(csv, idx++);
+            if (idx < lens)
+            {
+                break;
+            }
+        }
+    }
+
+    return idx;
+
+    // // read csv
+    // int idx = 0;
+    // while (!feof(csv->fp))
+    // {
+    //     // read data
+    //     for (int i = 0; i < csv->tagcnt-1; i++)
+    //     {
+    //         fscanf(csv->fp, "%lf,", &((double*)csv->mem[csv->tags[i]])[idx]);
+    //         // switch (csv->tags[i])
+    //         // {
+    //         //     case KSCSV_TAG_INTEGER_CASE:
+    //         //     {
+    //         //         printf("%.0f,", *(double*)csv->mem[csv->tags[i]]);
+    //         //         break;
+    //         //     }
+    //         //     default:
+    //         //     {
+    //         //         printf("%lf,", *(double*)csv->mem[csv->tags[i]]);
+    //         //         break;
+    //         //     }
+    //         // }
+    //     }
+    //     fscanf(csv->fp, "%lf\n", &((double*)csv->mem[csv->tags[csv->tagcnt-1]])[idx]);
+    //     // fscanf(csv->fp, "%lf\n", csv->mem[csv->tags[csv->tagcnt-1]]);
+    //     // printf("%lf\n", *(double*)csv->mem[csv->tags[csv->tagcnt-1]]);
+    //     // printf("%.0lf, index = %d ... %.0lf\n", ((double*)csv->mem[csv->tags[0]])[idx], csv->tags[0], csv->raw.sn[idx]);
+    //     idx++;
+    // }
+    // return 0;
 }
 
 /**
@@ -208,31 +283,11 @@ int kscsv_close(kscsv_t *csv)
  */
 void kscsv_release(kscsv_t *csv)
 {
-    free(csv->path);
-    free(csv->filename);
-    free(csv->tagidx);
-    csv->path = NULL;
-    csv->filename = NULL;
-    csv->tagidx = NULL;
-    kscsv_release_raw(&csv->raw);
-}
-
-/**
- *  @brief  kscsv_release_raw
- */
-void kscsv_release_raw(raw_t *raw)
-{
-
-}
-
-/**
- *  @brief  kscsv_read
- */
-void kscsv_read(kscsv_t *csv)
-{
-    FILE *fp = fopen(csv->filename, "rb");
-
-    fclose(fp);
+    for (int i = 0; i < csv->tagcnt; i++)
+    {
+        free((double *)csv->mem[i]);
+        csv->mem[i] = 0;
+    }
 }
 
 // void kscsv_getitem()

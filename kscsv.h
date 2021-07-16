@@ -25,12 +25,14 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 
+#include "kStatus.h"
+
 /* Define ----------------------------------------------------------------------------------*/
 
 #define MAX_FILENAME_STRING_LENGTH      256
 #define MAX_PATH_STRING_LENGTH          256
 #define MAX_FILE_LINE_STRING_LENGTH     8192
-// #define MAX_TYPE_STRING_LENGTH          8
+#define MAX_TAG_STRING_LENGTH           8
 
 /* Macro -----------------------------------------------------------------------------------*/
 /* Typedef ---------------------------------------------------------------------------------*/
@@ -89,44 +91,46 @@ typedef enum
     KSCSV_IDX_QMW   = 49,   // geomagnetic rotation vector w
 
     KSCSV_IDX_UNKNOWN,
-    KSCSV_IDX_END,
+    KSCSV_IDX_TOTAL,
 
 } kscsv_item_t;
 
 typedef struct
 {
-    uint64_t *sn;
-    uint64_t *ts;
-    uint64_t *dt;
-    float *g, *gr, *gb;
-    float *a, *ar, *ab;
-    float *m, *mr, *mb;
-    float *p, *t;
-    float *ag, *al;
-    float *q, *qa, *qm;
+    double *sn;
+    double *ts;
+    double *dt;
+    double *g[3], *gr[3], *gb[3];
+    double *a[3], *ar[3], *ab[3];
+    double *m[3], *mr[3], *mb[3];
+    double *p, *t;
+    double *ag[3], *al[3];
+    double *q[4], *qa[4], *qm[4];
+    double *unknown;
+    uint64_t size;
 
 } raw_t;
 
 typedef struct
 {
+    FILE *fp;
+
     char *path;
     char *filename;
-    char *line;
     int lens;
-    int *tagidx;
+    int *tags;
     int tagcnt;
-
-    // union {
-    //     int mem[]
-    //     raw_t raw;
-    // };
-    raw_t raw;
+    union {
+        unsigned int mem[KSCSV_IDX_TOTAL];
+        raw_t raw;
+    };
+    // raw_t raw;
 
 } kscsv_t;
 
 /* Extern ----------------------------------------------------------------------------------*/
 
-extern const char KSCSV_TAG_STRING[KSCSV_IDX_END][8];
+extern const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH];
 
 /* Functions -------------------------------------------------------------------------------*/
 
@@ -139,9 +143,8 @@ int     kscsv_get_line_count(FILE *file);
 
 int     kscsv_open(kscsv_t *csv, char *filename);
 void    kscsv_release(kscsv_t *csv);
-void    kscsv_release_raw(raw_t *raw);
 int     kscsv_close(kscsv_t *csv);
-void    kscsv_read(kscsv_t *csv);
+int     kscsv_read(kscsv_t *csv, int lens);
 
 #ifdef __cplusplus
 }
