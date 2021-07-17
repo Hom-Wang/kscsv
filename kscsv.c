@@ -212,6 +212,7 @@ static int kscsv_raw_malloc(kscsv_t *csv, int size)
 {
     // memory allocation
     csv->raw.size = size;
+    csv->raw.index = -1;
     if (csv->tagcntunk != 0)
     {
         csv->raw.unknown = (double **)calloc(csv->tagcntunk, sizeof(double));
@@ -307,6 +308,7 @@ static int kscsv_read_single(kscsv_t *csv, int index)
     {
         return KS_ERROR;
     }
+    csv->raw.index = (index != 0) ? index : csv->raw.index + 1;
 
     int idx, unkidx;
 
@@ -316,24 +318,24 @@ static int kscsv_read_single(kscsv_t *csv, int index)
         idx = csv->tags[i];
         if (idx < KSCSV_IDX_UNKNOWN)
         {
-            fscanf(csv->fp, "%lf,", &((double*)csv->mem[idx])[index]);
+            fscanf(csv->fp, "%lf,", &((double*)csv->mem[idx])[csv->raw.index]);
         }
         else
         {
             unkidx = idx % KSCSV_IDX_UNKNOWN;
-            fscanf(csv->fp, "%lf,", &csv->raw.unknown[unkidx][index]);
+            fscanf(csv->fp, "%lf,", &csv->raw.unknown[unkidx][csv->raw.index]);
         }
     }
 
     idx = csv->tags[csv->tagcnt-1];
     if (idx < KSCSV_IDX_UNKNOWN)
     {
-        fscanf(csv->fp, "%lf\n", &((double*)csv->mem[idx])[index]);
+        fscanf(csv->fp, "%lf\n", &((double*)csv->mem[idx])[csv->raw.index]);
     }
     else
     {
         int unkidx = idx % KSCSV_IDX_UNKNOWN;
-        fscanf(csv->fp, "%lf\n", &csv->raw.unknown[unkidx][index]);
+        fscanf(csv->fp, "%lf\n", &csv->raw.unknown[unkidx][csv->raw.index]);
     }
     return KS_OK;
 }
@@ -345,21 +347,29 @@ int kscsv_read(kscsv_t *csv, int lens)
 {
     if (feof(csv->fp))
     {
-        return -1;
+        return KS_ERROR;
     }
 
     // start read
     int idx = 0;
-    if (lens < 0)
+    if (lens == 0)
     {
-        while (!feof(csv->fp))
+        // single read
+        kscsv_read_single(csv, 0);
+    }
+    else if (lens < 0)
+    {
+        // continuous read (all)
+        do
         {
             kscsv_read_single(csv, idx++);
         }
+        while (!feof(csv->fp));
     }
     else
     {
-        while (!feof(csv->fp))
+        // continuous read (lens)
+        do
         {
             kscsv_read_single(csv, idx);
             if (++idx >= lens)
@@ -367,9 +377,10 @@ int kscsv_read(kscsv_t *csv, int lens)
                 break;
             }
         }
+        while (!feof(csv->fp));
     }
 
-    return idx;
+    return KS_OK;
 }
 
 /**

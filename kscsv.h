@@ -115,8 +115,9 @@ typedef struct
 
     // new tag ...
 
-    double **unknown;   // [tagunknown][size]
+    double **unknown;   // [csv.tagcntunk][csv.raw.size]
     uint64_t size;
+    uint64_t index;
 
 } raw_t;
 
