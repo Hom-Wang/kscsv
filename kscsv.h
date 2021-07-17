@@ -29,8 +29,9 @@ extern "C" {
 
 /* Define ----------------------------------------------------------------------------------*/
 
-#define MAX_FILENAME_STRING_LENGTH          256
-#define MAX_PATH_STRING_LENGTH              256
+#define MAX_PATH_STRING_LENGTH              1024
+#define MAX_NAME_STRING_LENGTH              256
+#define MAX_TYPE_STRING_LENGTH              8
 #define MAX_FILE_LINE_STRING_LENGTH         8192
 #define MAX_TAG_STRING_LENGTH               8
 
@@ -125,12 +126,13 @@ typedef struct
 {
     FILE *fp;           // file io
 
-    char *path;         // file path
-    char *name;         // file name
-    int lens;           // csv data/line count
-    int *tags;          // csv tag index array
-    int tagcnt;         // number of tags
-    int tagcntunk;      // number of unknown tags
+    char path[MAX_PATH_STRING_LENGTH];      // file path
+    char name[MAX_NAME_STRING_LENGTH];      // file name
+    char type[MAX_TYPE_STRING_LENGTH];      // file type
+    int lens;                               // csv data/line count
+    int *tags;                              // csv tag index array
+    int tagcnt;                             // number of tags
+    int tagcntunk;                          // number of unknown tags
     union {
         unsigned int mem[KSCSV_IDX_TOTAL];  // raw data memory pointer array
         raw_t raw;                          // raw data structure

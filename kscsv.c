@@ -59,18 +59,18 @@ static int kscsv_get_tag_index(char *tag)
 /**
  *  @brief  kscsv_get_tag_string
  */
-static int kscsv_get_tag_string(int index, char *tagstring)
+static int kscsv_get_tag_string(char *tagstr, int index)
 {
     if (index < KSCSV_IDX_UNKNOWN)
     {
-        strcpy(tagstring, KSCSV_TAG_STRING[index]);
+        strcpy(tagstr, KSCSV_TAG_STRING[index]);
     }
     else
     {
-        sprintf(tagstring, "%s[%d]", KSCSV_TAG_STRING[KSCSV_IDX_UNKNOWN], index % KSCSV_IDX_UNKNOWN);
+        sprintf(tagstr, "%s[%d]", KSCSV_TAG_STRING[KSCSV_IDX_UNKNOWN], index % KSCSV_IDX_UNKNOWN);
     }
 
-    return strlen(tagstring);;
+    return strlen(tagstr);
 }
 
 /**
@@ -149,7 +149,7 @@ static int kscsv_get_line_count(FILE *file)
 /**
  *  @brief  kscsv_get_size_string
  */
-static int kscsv_get_size_string(uint64_t bytes, char *sizestring)
+static int kscsv_get_size_string(char *sizestr, uint64_t bytes)
 {
     double size = bytes;
     int level = 0;
@@ -167,22 +167,22 @@ static int kscsv_get_size_string(uint64_t bytes, char *sizestring)
     {
         case 0: // Byte
         {
-            sprintf(sizestring, "%.0f B", size);
+            sprintf(sizestr, "%.0f B", size);
             break;
         }
         case 1: // KByte
         {
-            sprintf(sizestring, "%.3f KB", size);
+            sprintf(sizestr, "%.3f KB", size);
             break;
         }
         case 2: // MByte
         {
-            sprintf(sizestring, "%.3f MB", size);
+            sprintf(sizestr, "%.3f MB", size);
             break;
         }
         case 3: // GByte
         {
-            sprintf(sizestring, "%.3f GB", size);
+            sprintf(sizestr, "%.3f GB", size);
             break;
         }
     }
@@ -257,22 +257,58 @@ static void kscsv_raw_free(kscsv_t *csv)
     }
 }
 
+int kscsv_split_fullname(char *string, char *path, char *name, char *type)
+{
+    // find last slash and last dot character
+    int slash = -1, dot = -1;
+    for (int i = 0; i < strlen(string); i++)
+    {
+        if ((string[i] == '/') || (string[i] == '\\'))
+        {
+            slash = i;
+        }
+        else if (string[i] == '.')
+        {
+            dot = i;
+        }
+    }
+
+    if (dot < 0)
+    {
+        return KS_ERROR;
+    }
+    // path, name, type
+    strcpy(type, &string[dot+1]);
+    type[dot] = '\0';
+    if (slash < 0)
+    {
+        sprintf(path, "./");
+        strcpy(name, string);
+        name[dot] = '\0';
+    }
+    else
+    {
+        strcpy(path, string);
+        path[slash+1] = '\0';
+        strcpy(name, &string[slash+1]);
+        name[dot-slash-1] = '\0';
+    }
+    return KS_OK;
+}
+
 /**
  *  @brief  kscsv_open
  */
 int kscsv_open(kscsv_t *csv, char *filename)
 {
-    if (csv->path == NULL)
+    char fullname[MAX_PATH_STRING_LENGTH] = {0};
+    if (kscsv_split_fullname(filename, csv->path, csv->name, csv->type) != KS_OK)
     {
-        csv->path = (char *)calloc(MAX_PATH_STRING_LENGTH, sizeof(char));
+        return KS_ERROR;
     }
-    if (csv->name == NULL)
-    {
-        csv->name = (char *)calloc(MAX_FILENAME_STRING_LENGTH, sizeof(char));
-        strcpy(csv->name, filename);
-    }
+    sprintf(fullname, "%s%s.%s", csv->path, csv->name, csv->type);
 
-    csv->fp = fopen(filename, "rb");
+    csv->fp = fopen(fullname, "rb");
     if (csv->fp == NULL)
     {
         return KS_ERROR;
@@ -289,11 +325,7 @@ int kscsv_open(kscsv_t *csv, char *filename)
  */
 int kscsv_close(kscsv_t *csv)
 {
-    free(csv->path);
-    free(csv->name);
     free(csv->tags);
-    csv->path = NULL;
-    csv->name = NULL;
     csv->tags = NULL;
     kscsv_raw_free(csv);
     return fclose(csv->fp);
@@ -388,54 +420,23 @@ int kscsv_read(kscsv_t *csv, int lens)
  */
 void kscsv_info(kscsv_t *csv)
 {
-    char tag[MAX_TAG_STRING_LENGTH] = {0};
+    char str[MAX_FILE_LINE_STRING_LENGTH] = {0};
     uint64_t memsize = csv->tagcnt * csv->raw.size * sizeof(double);
-
     printf("\n");
     printf(">> csv information\n");
-    printf("file path = %s\n", csv->path);
-    printf("file name = %s\n", csv->name);
-    printf("data lens = %d\n", csv->lens);
-    printf("buffer size = %d\n", csv->raw.size);
-    kscsv_get_size_string(memsize, tag);
-    printf("memory size = %s\n", tag);
-    printf("number of tags = %d\n", csv->tagcnt);
-    printf("number of unknown tags = %d\n", csv->tagcntunk);
-    printf("tags: ");
+    sprintf(str, "%s%s.%s", csv->path, csv->name, csv->type);
+    printf("fullanme    %s\n", str);
+    printf("tags        %d (unknown = %d)  >>>  ", csv->tagcnt, csv->tagcntunk);
     for (int i = 0; i < csv->tagcnt-1; i++)
     {
-        kscsv_get_tag_string(csv->tags[i], tag);
-        printf("%s,", tag);
+        kscsv_get_tag_string(str, csv->tags[i]);
+        printf("%s,", str);
     }
-    kscsv_get_tag_string(csv->tags[csv->tagcnt-1], tag);
-    printf("%s\n", tag);
+    kscsv_get_tag_string(str, csv->tags[csv->tagcnt-1]);
+    printf("%s\n", str);
+    printf("data        %d x tags\n", csv->lens);
+    kscsv_get_size_string(str, memsize);
+    printf("memory      %s (%d x tags x 8)\n", str, csv->raw.size);
 }
 
 /*************************************** END OF FILE ****************************************/
-
-// #include <dirent.h>
-// void kscsv_getitem()
-// {
-    // printf("strtoul(line, NULL, 0) = %d\n", tt);
-    // printf("strtof(line, NULL) = %f\n\n", ff);
-
-//     printf("\n-----\n");
-//     char *token = (char *)strtok(line, ",");
-//     while (token != NULL) 
-//     {
-//         printf("[%02d] %s\n", kscsv_get_item_index(token), token);
-//         token = (char *)strtok(NULL, ",");
-//     }
-//     printf("\n-----\n");
-
-    // DIR *d;
-    // struct dirent *dir;
-    // d = opendir(".");
-    // if (d) {
-    //     while ((dir = readdir(d)) != NULL) {
-    //         printf("%s\n", dir->d_name);
-    //     }
-    //     closedir(d);
-    // }
-
-// }

@@ -33,7 +33,6 @@ int opencsv(kscsv_t *csv, char *filename)
 int main()
 {
     kscsv_t csv = {0};
-
     if (opencsv(&csv, filename) != KS_OK)
     {
         printf("\nopen csv failed !!!\n");
