@@ -124,7 +124,8 @@ typedef struct
 
 typedef struct
 {
-    FILE *fp;           // file io
+    FILE *fp;           // file io (read)
+    FILE *fpw;          // file io (write)
 
     char path[MAX_PATH_STRING_LENGTH];      // file path
     char name[MAX_NAME_STRING_LENGTH];      // file name
@@ -147,8 +148,10 @@ extern const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH];
 /* Functions -------------------------------------------------------------------------------*/
 
 int     kscsv_open(kscsv_t *csv, char *filename);
+int     kscsv_create(kscsv_t *csv, char * filename, char *relatepath, char *filetag, char **tag, int tagcnt);
 int     kscsv_close(kscsv_t *csv);
 int     kscsv_read(kscsv_t *csv, int lens);
+int     kscsv_write(kscsv_t *csv, const char *fmt, ...);
 void    kscsv_info(kscsv_t *csv);
 
 #ifdef __cplusplus

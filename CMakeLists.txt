@@ -3,6 +3,9 @@ project(kscsv VERSION 0.1.0)
 
 add_executable(kscsv
     main.c
+    # example_read_loop.c
+    # example_read.c
+    # example_write.c
     kscsv.c
 )
 

@@ -13,7 +13,9 @@
  */
 
 /* Includes --------------------------------------------------------------------------------*/
+#include <stdarg.h>
 #include <string.h>
+#include <direct.h>
 
 #include "kscsv.h"
 
@@ -257,7 +259,10 @@ static void kscsv_raw_free(kscsv_t *csv)
     }
 }
 
-int kscsv_split_fullname(char *string, char *path, char *name, char *type)
+/**
+ *  @brief  kscsv_split_fullname
+ */
+static int kscsv_split_fullname(char *string, char *path, char *name, char *type)
 {
     // find last slash and last dot character
     int slash = -1, dot = -1;
@@ -321,6 +326,54 @@ int kscsv_open(kscsv_t *csv, char *filename)
 }
 
 /**
+ *  @brief  kscsv_create
+ */
+int kscsv_create(kscsv_t *csv, char * filename, char *relatepath, char *filetag, char **tag, int tagcnt)
+{
+    char res[2][MAX_PATH_STRING_LENGTH] = {0};
+    char str[MAX_PATH_STRING_LENGTH] = {0};
+
+    // only write
+    if ((csv->fp == NULL) && (filename != NULL))
+    {
+        if (kscsv_split_fullname(filename, csv->path, csv->name, csv->type) != KS_OK)
+        {
+            return KS_ERROR;
+        }
+    }
+
+    if (relatepath != NULL)
+    {
+        strcpy(res[0], relatepath);
+    }
+    if (filetag != NULL)
+    {
+        strcpy(res[1], filetag);
+    }
+    sprintf(str, "%s%s", csv->path, res[0]);
+    _mkdir(str);
+    sprintf(str, "%s%s%s%s.%s", csv->path, res[0], csv->name, res[1], csv->type);
+
+    csv->fpw = fopen(str, "wb");
+    if (csv->fpw == NULL)
+    {
+        return KS_ERROR;
+    }
+
+    char *pstr = str;
+    int lens = 0;
+    lens = sprintf(pstr, "%s", tag[0]);
+    for (int i = 1; i < tagcnt; i++)
+    {
+        lens += sprintf(pstr+lens, ",%s", tag[i]);
+    }
+    *(pstr+lens) = '\0';
+    fputs(str, csv->fpw);
+
+    return KS_OK;
+}
+
+/**
  *  @brief  kscsv_close
  */
 int kscsv_close(kscsv_t *csv)
@@ -328,6 +381,10 @@ int kscsv_close(kscsv_t *csv)
     free(csv->tags);
     csv->tags = NULL;
     kscsv_raw_free(csv);
+    if (csv->fpw != NULL)
+    {
+        fclose(csv->fpw);
+    }
     return fclose(csv->fp);
 }
 
@@ -413,6 +470,24 @@ int kscsv_read(kscsv_t *csv, int lens)
     }
 
     return KS_OK;
+}
+
+/**
+ *  @brief  kscsv_write
+ */
+int kscsv_write(kscsv_t *csv, const char *fmt, ...)
+{
+    int lens = 0;
+    char str[MAX_PATH_STRING_LENGTH] = {0};
+    char *pstr = str;
+    *pstr++ = '\n';
+    va_list aptr;
+    va_start(aptr, fmt);
+    lens = vsprintf(pstr, fmt, aptr);
+    va_end(aptr);
+    fputs(str, csv->fpw);
+
+    return lens;
 }
 
 /**
