@@ -29,10 +29,14 @@ extern "C" {
 
 /* Define ----------------------------------------------------------------------------------*/
 
-#define MAX_FILENAME_STRING_LENGTH      256
-#define MAX_PATH_STRING_LENGTH          256
-#define MAX_FILE_LINE_STRING_LENGTH     8192
-#define MAX_TAG_STRING_LENGTH           8
+#define MAX_FILENAME_STRING_LENGTH          256
+#define MAX_PATH_STRING_LENGTH              256
+#define MAX_FILE_LINE_STRING_LENGTH         8192
+#define MAX_TAG_STRING_LENGTH               8
+
+#ifndef ENABLE_FGETS_INSTEAD_OF_FSCANF
+#define ENABLE_FGETS_INSTEAD_OF_FSCANF      0
+#endif
 
 /* Macro -----------------------------------------------------------------------------------*/
 /* Typedef ---------------------------------------------------------------------------------*/
@@ -41,7 +45,7 @@ typedef enum
 {
     KSCSV_IDX_SN    = 0,    // serial number
     KSCSV_IDX_TS    = 1,    // timestamp
-    KSCSV_IDX_DT    = 2,    // delta time
+    KSCSV_IDX_DT    = 2,    // sampling delta time
     KSCSV_IDX_GX    = 3,    // gyr calibrated data x
     KSCSV_IDX_GY    = 4,    // gyr calibrated data y
     KSCSV_IDX_GZ    = 5,    // gyr calibrated data z
@@ -90,6 +94,8 @@ typedef enum
     KSCSV_IDX_QMZ   = 48,   // geomagnetic rotation vector z
     KSCSV_IDX_QMW   = 49,   // geomagnetic rotation vector w
 
+    // new tag ...
+
     KSCSV_IDX_UNKNOWN,
     KSCSV_IDX_TOTAL,
 
@@ -106,25 +112,28 @@ typedef struct
     double *p, *t;
     double *ag[3], *al[3];
     double *q[4], *qa[4], *qm[4];
-    double *unknown;
+
+    // new tag ...
+
+    double **unknown;   // [tagunknown][size]
     uint64_t size;
 
 } raw_t;
 
 typedef struct
 {
-    FILE *fp;
+    FILE *fp;           // file io
 
-    char *path;
-    char *filename;
-    int lens;
-    int *tags;
-    int tagcnt;
+    char *path;         // file path
+    char *name;         // file name
+    int lens;           // csv data/line count
+    int *tags;          // csv tag index array
+    int tagcnt;         // number of tags
+    int tagcntunk;      // number of unknown tags
     union {
-        unsigned int mem[KSCSV_IDX_TOTAL];
-        raw_t raw;
+        unsigned int mem[KSCSV_IDX_TOTAL];  // raw data memory pointer array
+        raw_t raw;                          // raw data structure
     };
-    // raw_t raw;
 
 } kscsv_t;
 
@@ -134,17 +143,10 @@ extern const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH];
 
 /* Functions -------------------------------------------------------------------------------*/
 
-int     kscsv_get_tag_count(char *line);
-int     kscsv_get_tag_index(char *line);
-int     kscsv_get_tag_index_array(char *line, int *idxarray);
-int     kscsv_check_tag_index_array(int *idxarray, int lens);
-
-int     kscsv_get_line_count(FILE *file);
-
 int     kscsv_open(kscsv_t *csv, char *filename);
-void    kscsv_release(kscsv_t *csv);
 int     kscsv_close(kscsv_t *csv);
 int     kscsv_read(kscsv_t *csv, int lens);
+void    kscsv_info(kscsv_t *csv);
 
 #ifdef __cplusplus
 }
