@@ -82,18 +82,18 @@ typedef enum
     KSCSV_IDX_ALX   = 35,   // linear acc x
     KSCSV_IDX_ALY   = 36,   // linear acc y
     KSCSV_IDX_ALZ   = 37,   // linear acc z
-    KSCSV_IDX_QX    = 38,   // rotation vector x
-    KSCSV_IDX_QY    = 39,   // rotation vector y
-    KSCSV_IDX_QZ    = 40,   // rotation vector z
-    KSCSV_IDX_QW    = 41,   // rotation vector w
-    KSCSV_IDX_QAX   = 42,   // game rotation vector x
-    KSCSV_IDX_QAY   = 43,   // game rotation vector y
-    KSCSV_IDX_QAZ   = 44,   // game rotation vector z
-    KSCSV_IDX_QAW   = 45,   // game rotation vector w
-    KSCSV_IDX_QMX   = 46,   // geomagnetic rotation vector x
-    KSCSV_IDX_QMY   = 47,   // geomagnetic rotation vector y
-    KSCSV_IDX_QMZ   = 48,   // geomagnetic rotation vector z
-    KSCSV_IDX_QMW   = 49,   // geomagnetic rotation vector w
+    KSCSV_IDX_RVX   = 38,   // rotation vector x
+    KSCSV_IDX_RVY   = 39,   // rotation vector y
+    KSCSV_IDX_RVZ   = 40,   // rotation vector z
+    KSCSV_IDX_RVW   = 41,   // rotation vector w
+    KSCSV_IDX_RVAX  = 42,   // game rotation vector x
+    KSCSV_IDX_RVAY  = 43,   // game rotation vector y
+    KSCSV_IDX_RVAZ  = 44,   // game rotation vector z
+    KSCSV_IDX_RVAW  = 45,   // game rotation vector w
+    KSCSV_IDX_RVMX  = 46,   // geomagnetic rotation vector x
+    KSCSV_IDX_RVMY  = 47,   // geomagnetic rotation vector y
+    KSCSV_IDX_RVMZ  = 48,   // geomagnetic rotation vector z
+    KSCSV_IDX_RVMW  = 49,   // geomagnetic rotation vector w
 
     // new tag ...
 
@@ -112,7 +112,7 @@ typedef struct
     double *m[3], *mr[3], *mb[3];
     double *p, *t;
     double *ag[3], *al[3];
-    double *q[4], *qa[4], *qm[4];
+    double *rv[4], *rva[4], *rvm[4];
 
     // new tag ...
 
@@ -147,8 +147,8 @@ extern const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH];
 
 /* Functions -------------------------------------------------------------------------------*/
 
-int     kscsv_open(kscsv_t *csv, char *filename);
-int     kscsv_create(kscsv_t *csv, char * filename, char *relatepath, char *filetag, char **tag, int tagcnt);
+int     kscsv_open(kscsv_t *csv, const char *filename);
+int     kscsv_create(kscsv_t *csv, const char *relatepath, const char *filetag, char **tag, int tagcnt);
 int     kscsv_close(kscsv_t *csv);
 int     kscsv_read(kscsv_t *csv, int lens);
 int     kscsv_write(kscsv_t *csv, const char *fmt, ...);

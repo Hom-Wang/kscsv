@@ -32,9 +32,9 @@ const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH] =
     "mx", "my", "mz", "mrx", "mry", "mrz", "mbx", "mby", "mbz",
     "p", "t",
     "agx", "agy", "agz", "alx", "aly", "alz",
-    "qx", "qy", "qz", "qw",
-    "qgx", "qgy", "qgz", "qgw",
-    "qmx", "qmy", "qmz", "qmw",
+    "rvx", "rvy", "rvz", "rvw",
+    "rvgx", "rvgy", "rvgz", "rvgw",
+    "rvmx", "rvmy", "rvmz", "rvmw",
 
     "unk"   // unknown
 };
@@ -262,7 +262,7 @@ static void kscsv_raw_free(kscsv_t *csv)
 /**
  *  @brief  kscsv_split_fullname
  */
-static int kscsv_split_fullname(char *string, char *path, char *name, char *type)
+static int kscsv_split_fullname(const char *string, char *path, char *name, char *type)
 {
     // find last slash and last dot character
     int slash = -1, dot = -1;
@@ -304,7 +304,7 @@ static int kscsv_split_fullname(char *string, char *path, char *name, char *type
 /**
  *  @brief  kscsv_open
  */
-int kscsv_open(kscsv_t *csv, char *filename)
+int kscsv_open(kscsv_t *csv, const char *filename)
 {
     char fullname[MAX_PATH_STRING_LENGTH] = {0};
     if (kscsv_split_fullname(filename, csv->path, csv->name, csv->type) != KS_OK)
@@ -328,21 +328,23 @@ int kscsv_open(kscsv_t *csv, char *filename)
 /**
  *  @brief  kscsv_create
  */
-int kscsv_create(kscsv_t *csv, char * filename, char *relatepath, char *filetag, char **tag, int tagcnt)
+int kscsv_create(kscsv_t *csv, const char *relatepath, const char *filetag, char **tag, int tagcnt)
 {
     char res[2][MAX_PATH_STRING_LENGTH] = {0};
     char str[MAX_PATH_STRING_LENGTH] = {0};
+    int enablerelate = KS_TRUE;
 
     // only write
-    if ((csv->fp == NULL) && (filename != NULL))
+    if (csv->fp == NULL)
     {
-        if (kscsv_split_fullname(filename, csv->path, csv->name, csv->type) != KS_OK)
+        enablerelate = KS_FALSE;
+        if (kscsv_split_fullname(relatepath, csv->path, csv->name, csv->type) != KS_OK)
         {
             return KS_ERROR;
         }
     }
 
-    if (relatepath != NULL)
+    if ((relatepath != NULL) && enablerelate)
     {
         strcpy(res[0], relatepath);
     }

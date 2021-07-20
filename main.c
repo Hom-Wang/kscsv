@@ -2,26 +2,18 @@
 
 char filename[] = ".././log/TEST_1.csv";
 
-int opencsv(kscsv_t *csv, char *filename)
-{
-    if (kscsv_open(csv, filename) != KS_OK)
-    {
-        return KS_ERROR;
-    }
-    kscsv_info(csv);
-    return KS_OK;
-}
-
 int main()
 {
     kscsv_t csv = {0};
 
     // open csv
-    if (opencsv(&csv, filename) != KS_OK)
+    if (kscsv_open(&csv, filename) != KS_OK)
     {
-        printf("\nopen csv failed !!!\n");
+        printf("open csv failed !!!\n");
         return -1;
     }
+    kscsv_info(&csv);
+
     // read csv
     kscsv_read(&csv, -1);
 
@@ -29,11 +21,12 @@ int main()
     char *TAG[] = {
         "sn","ts","gx","gy","gz","ax","ay","az","mx","my","mz","dt","mbx","mby","mbz"
     };
-    if (kscsv_create(&csv, NULL, "output/", "_COPY", TAG, sizeof(TAG) >> 2) != KS_OK)
+    if (kscsv_create(&csv, "output/", "_COPY", TAG, sizeof(TAG) >> 2) != KS_OK)
     {
         printf("create csv failed !!!\n");
         return -1;
     }
+
     // write csv
     for (int i = 0; i < csv.raw.size; i++)
     {
@@ -46,6 +39,7 @@ int main()
             csv.raw.dt[i],
             csv.raw.mb[0][i], csv.raw.mb[1][i], csv.raw.mb[2][i]);
     }
+
     // close csv
     kscsv_close(&csv);
 
