@@ -13,16 +13,20 @@
  */
 
 /* Includes --------------------------------------------------------------------------------*/
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <direct.h>
 
+#include "kslog.h"
 #include "kscsv.h"
 
 /* Define ----------------------------------------------------------------------------------*/
 /* Macro -----------------------------------------------------------------------------------*/
 /* Typedef ---------------------------------------------------------------------------------*/
 /* Variables -------------------------------------------------------------------------------*/
+
+const char KSCSV_VERSION[] = KSCSV_VERSION_DEFINE;
 
 const char KSCSV_TAG_STRING[KSCSV_IDX_TOTAL][MAX_TAG_STRING_LENGTH] =
 {
@@ -141,7 +145,7 @@ static int kscsv_get_line_count(FILE *file)
         }
         lens++;
 #if 0
-        printf("[%d] %s\n", lens, line);
+        klogd("[%d] %s\n", lens, line);
 #endif
     }
     // rewind(file);
@@ -499,21 +503,21 @@ void kscsv_info(kscsv_t *csv)
 {
     char str[MAX_FILE_LINE_STRING_LENGTH] = {0};
     uint64_t memsize = csv->tagcnt * csv->raw.size * sizeof(double);
-    printf("\n");
-    printf(">> csv information\n");
+    klogd("\n");
+    klogd(">> csv information\n");
     sprintf(str, "%s%s.%s", csv->path, csv->name, csv->type);
-    printf("fullanme    %s\n", str);
-    printf("tags        %d (unknown = %d)  >>>  ", csv->tagcnt, csv->tagcntunk);
+    klogd("fullanme    %s\n", str);
+    klogd("tags        %d (unknown = %d)  >>>  ", csv->tagcnt, csv->tagcntunk);
     for (int i = 0; i < csv->tagcnt-1; i++)
     {
         kscsv_get_tag_string(str, csv->tags[i]);
-        printf("%s,", str);
+        klogd("%s,", str);
     }
     kscsv_get_tag_string(str, csv->tags[csv->tagcnt-1]);
-    printf("%s\n", str);
-    printf("data        %d x tags\n", csv->lens);
+    klogd("%s\n", str);
+    klogd("data        %d x tags\n", csv->lens);
     kscsv_get_size_string(str, memsize);
-    printf("memory      %s (%d x tags x 8)\n", str, csv->raw.size);
+    klogd("memory      %s (%d x tags x 8)\n", str, csv->raw.size);
 }
 
 /*************************************** END OF FILE ****************************************/

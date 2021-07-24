@@ -7,6 +7,7 @@ add_executable(kscsv
     # example_read.c
     # example_write.c
     kscsv.c
+    kslog.c
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

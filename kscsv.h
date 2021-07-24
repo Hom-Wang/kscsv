@@ -21,22 +21,25 @@ extern "C" {
 #endif
 
 /* Includes --------------------------------------------------------------------------------*/
-#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "kStatus.h"
+#include "kstatus.h"
 
 /* Define ----------------------------------------------------------------------------------*/
 
-#define MAX_PATH_STRING_LENGTH              1024
-#define MAX_NAME_STRING_LENGTH              256
-#define MAX_TYPE_STRING_LENGTH              8
-#define MAX_FILE_LINE_STRING_LENGTH         8192
-#define MAX_TAG_STRING_LENGTH               8
+#ifndef KSCSV_VERSION_DEFINE
+#define KSCSV_VERSION_DEFINE                            "1.0.0"
+#endif
+
+#define MAX_PATH_STRING_LENGTH                          (1024)
+#define MAX_NAME_STRING_LENGTH                          (256)
+#define MAX_TYPE_STRING_LENGTH                          (8)
+#define MAX_FILE_LINE_STRING_LENGTH                     (8192)
+#define MAX_TAG_STRING_LENGTH                           (8)
 
 #ifndef ENABLE_FGETS_INSTEAD_OF_FSCANF
-#define ENABLE_FGETS_INSTEAD_OF_FSCANF      0
+#define ENABLE_FGETS_INSTEAD_OF_FSCANF                  (0)
 #endif
 
 /* Macro -----------------------------------------------------------------------------------*/
@@ -120,7 +123,7 @@ typedef struct
     uint64_t size;
     uint64_t index;
 
-} raw_t;
+} kscsv_raw_t;
 
 typedef struct
 {
@@ -136,7 +139,7 @@ typedef struct
     int tagcntunk;                          // number of unknown tags
     union {
         unsigned int mem[KSCSV_IDX_TOTAL];  // raw data memory pointer array
-        raw_t raw;                          // raw data structure
+        kscsv_raw_t raw;                    // raw data structure
     };
 
 } kscsv_t;
